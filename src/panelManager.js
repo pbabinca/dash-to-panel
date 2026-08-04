@@ -332,6 +332,13 @@ export const PanelManager = class {
           )
         }
 
+        if (pmb.menu._boxPointer._dtpMaxHeightId) {
+          pmb.menu.disconnect(pmb.menu._boxPointer._dtpMaxHeightId)
+          delete pmb.menu._boxPointer._dtpMaxHeightId
+        }
+
+        this._restoreDateMenuScroll(pmb)
+
         pmb.menu._boxPointer.sourceActor = pmb.menu._boxPointer._dtpSourceActor
         delete pmb.menu._boxPointer._dtpSourceActor
         pmb.menu._boxPointer._userArrowSide = St.Side.TOP
@@ -744,7 +751,59 @@ export const PanelManager = class {
             },
           )
       }
+
+      // PanelMenu.Button._onOpenStateChanged always uses primaryIndex, which is
+      // wrong when this panel lives on a secondary monitor smaller than the
+      // primary.  Override the style here, after the original handler runs,
+      // using the monitor that actually hosts this panel.
+      button.menu._boxPointer._dtpMaxHeightId = button.menu.connect(
+        'open-state-changed',
+        (_menu) => {
+          let workArea = Main.layoutManager.getWorkAreaForMonitor(monitor.index)
+          let scaleFactor = St.ThemeContext.get_for_stage(global.stage).scale_factor
+          let verticalMargins =
+            button.menu.actor.margin_top + button.menu.actor.margin_bottom
+          let maxHeight = Math.round(
+            (workArea.height - verticalMargins) / scaleFactor,
+          )
+          button.menu.actor.style = `max-height: ${maxHeight}px;`
+        },
+      )
+
+      this._restructureDateMenuScroll(button)
     }
+  }
+
+  _restructureDateMenuScroll(button) {
+    if (!button._displaysSection || !button._clocksItem || !button._weatherItem)
+      return
+
+    let displaysBox = button._displaysSection.child
+    if (!displaysBox || button._clocksItem.get_parent() !== displaysBox)
+      return
+
+    let vbox = button._displaysSection.get_parent()
+    displaysBox.remove_child(button._clocksItem)
+    displaysBox.remove_child(button._weatherItem)
+    vbox.add_child(button._clocksItem)
+    vbox.add_child(button._weatherItem)
+    button._dtpDateMenuRestructured = true
+  }
+
+  _restoreDateMenuScroll(button) {
+    if (!button._dtpDateMenuRestructured)
+      return
+
+    let displaysBox = button._displaysSection.child
+    let vbox = button._displaysSection.get_parent()
+    if (!displaysBox || !vbox)
+      return
+
+    vbox.remove_child(button._clocksItem)
+    vbox.remove_child(button._weatherItem)
+    displaysBox.add_child(button._clocksItem)
+    displaysBox.add_child(button._weatherItem)
+    delete button._dtpDateMenuRestructured
   }
 
   _getBoxPointerPreferredHeight(boxPointer, alloc, monitor) {
