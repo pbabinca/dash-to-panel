@@ -650,6 +650,11 @@
       <summary>Font weight of application titles</summary>
       <description>When the applications are ungrouped, this defines font weight of application titles. Supported values: inherit (from theme), normal, lighter, bold and bolder.</description>
     </key>
+    <key type="b" name="group-apps-label-font-color-inherit-theme">
+      <default>false</default>
+      <summary>Inherit application title font color from the shell theme</summary>
+      <description>When the applications are ungrouped, ignore the custom title font colors and use the panel's own text color from the active shell theme instead, so titles stay readable in both light and dark themes.</description>
+    </key>
     <key type="s" name="group-apps-label-font-color">
       <default>"#dddddd"</default>
       <summary>Application title font color</summary>

@@ -2697,6 +2697,15 @@ const Preferences = class {
       })
 
     this._settings.bind(
+      'group-apps-label-font-color-inherit-theme',
+      this._builder.get_object(
+        'group_apps_label_font_color_inherit_theme_switch',
+      ),
+      'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    )
+
+    this._settings.bind(
       'group-apps-use-fixed-width',
       this._builder.get_object('group_apps_use_fixed_width_switch'),
       'active',
@@ -2754,6 +2763,13 @@ const Preferences = class {
             this._builder
               .get_object('group_apps_label_font_color_colorbutton')
               .set_rgba(rgba)
+
+            this._settings.set_value(
+              'group-apps-label-font-color-inherit-theme',
+              this._settings.get_default_value(
+                'group-apps-label-font-color-inherit-theme',
+              ),
+            )
 
             this._settings.set_value(
               'group-apps-label-font-color-minimized',

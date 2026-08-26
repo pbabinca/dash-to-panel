@@ -361,6 +361,7 @@ export const TaskbarAppIcon = GObject.registerClass(
             'changed::group-apps-label-font-size',
             'changed::group-apps-label-font-weight',
             'changed::group-apps-label-font-color',
+            'changed::group-apps-label-font-color-inherit-theme',
             'changed::group-apps-label-font-color-minimized',
             'changed::group-apps-label-max-width',
             'changed::group-apps-use-fixed-width',
@@ -371,6 +372,11 @@ export const TaskbarAppIcon = GObject.registerClass(
           SETTINGS,
           'changed::highlight-appicon-hover-border-radius',
           () => this._setIconStyle(this._isFocusedWindow()),
+        ],
+        [
+          St.ThemeContext.get_for_stage(global.stage),
+          'changed',
+          this._updateWindowTitleStyle.bind(this),
         ],
       )
     }
@@ -716,14 +722,33 @@ export const TaskbarAppIcon = GObject.registerClass(
       this._displayProperIndicator()
     }
 
+    _getThemeTitleColor(minimized) {
+      // The panel actor carries the shell theme's text color (the taskbar
+      // subtree overrides it, so we read it from the panel itself).
+      let color = this.dtpPanel.panel.get_theme_node().get_foreground_color()
+      // Depending on the GJS version get_foreground_color returns the color
+      // directly or wrapped in an array; normalize to the color object.
+      if (Array.isArray(color)) color = color[color.length - 1]
+      let alpha = (minimized ? color.alpha * 0.5 : color.alpha) / 255
+      return `rgba(${color.red}, ${color.green}, ${color.blue}, ${alpha})`
+    }
+
     _updateWindowTitleStyle() {
       if (this._windowTitle) {
         let useFixedWidth = SETTINGS.get_boolean('group-apps-use-fixed-width')
         let fontWeight = SETTINGS.get_string('group-apps-label-font-weight')
         let fontScale = DESKTOPSETTINGS.get_double('text-scaling-factor')
-        let fontColor = this.window.minimized
-          ? SETTINGS.get_string('group-apps-label-font-color-minimized')
-          : SETTINGS.get_string('group-apps-label-font-color')
+        let fontColor
+        if (SETTINGS.get_boolean('group-apps-label-font-color-inherit-theme')) {
+          // Inherit the panel's own text color from the active shell theme so
+          // titles stay readable in both light and dark themes without any
+          // hardcoded color. Minimized titles are dimmed rather than recolored.
+          fontColor = this._getThemeTitleColor(this.window.minimized)
+        } else {
+          fontColor = this.window.minimized
+            ? SETTINGS.get_string('group-apps-label-font-color-minimized')
+            : SETTINGS.get_string('group-apps-label-font-color')
+        }
         let scaleFactor = Utils.getScaleFactor()
         let maxLabelWidth =
           SETTINGS.get_int('group-apps-label-max-width') * scaleFactor
